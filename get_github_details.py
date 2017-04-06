@@ -12,7 +12,7 @@ import pandas as pd
 import sys
 from pandas.io.json import json_normalize
 
-AUTH_TOKEN = '1b2f1a9bdcea074239731623c09ddbf9310a959b'
+AUTH_TOKEN = 'eec4d5de8975e60ba34ea21731fe894e5416c5a4'
 AUTH_HEADER = {'Authorization':'token ' + AUTH_TOKEN}
 
 requests_session = requests.Session()
