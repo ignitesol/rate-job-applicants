@@ -6,7 +6,7 @@ Purpose:
 
 Implemented Functionality:
 * Search Github for name/github-id/email and retrive relevant data:
-  * Usage: $python3 get_github_details.py "search string"
+  * Usage command: $ python3 get_github_details.py "search string"
   * Output: spreadsheet with relevant github details, named "search_string_github.xlsx"
 
 
