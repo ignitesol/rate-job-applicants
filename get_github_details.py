@@ -10,9 +10,10 @@ import requests
 import json
 import pandas as pd
 import sys
+import github_auth
 from pandas.io.json import json_normalize
 
-AUTH_TOKEN = 'eec4d5de8975e60ba34ea21731fe894e5416c5a4'
+AUTH_TOKEN = github_auth.AUTH_TOKEN
 AUTH_HEADER = {'Authorization':'token ' + AUTH_TOKEN}
 
 requests_session = requests.Session()
