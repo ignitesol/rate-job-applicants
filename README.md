@@ -1,5 +1,5 @@
 Purpose:
-* Search Github and Stackexchange for the job candidate
+* Search Github and Stackexchange for data about a job candidate
 * Retrive all relevant information for the candidate from Github and Stackexchange
 * Identify and extract data pertinent for rating the candidate
 * Use a suitable methodology for rating the candidate
