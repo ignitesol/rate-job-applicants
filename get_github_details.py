@@ -82,7 +82,7 @@ if __name__ == '__main__':
     fields = ['user_name', 'user_login', 'user_email', 'user_score', 'full_name', 'owner',
               'html_url', 'language', 'updated_at', 'forks_count', 'stargazers_count',
               'contribution %', 'contributions']
-    print("\nFinding users matching '{} ...".format(search_string))
+    print("\nFinding users matching '{}' ...".format(search_string))
     matching_users, users_list = get_matching_users(search_string)
     n_matches = len(users_list)
     if n_matches == 0:
