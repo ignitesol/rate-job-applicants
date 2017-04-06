@@ -4,6 +4,7 @@ __Purpose__
 * Identify and extract data pertinent for rating the candidate
 * Use a suitable methodology for rating the candidate using this data
 
+
 __Implemented Functionality__
 - [x] Search Github for name/username/email and retrive relevant data.
   * Usage command: $ python3 get_github_details.py "search string"
