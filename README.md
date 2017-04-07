@@ -6,8 +6,8 @@ __Purpose__
 
 __Implemented Functionality__
 - [x] Search Github for a specified name/username/email and retrive relevant data.
-  * Requirements: Github auth token as AUTH_TOKEN in github_auth.py (necessary only for bypassing rate limits)
-  * Usage command: $ python3 get_github_details.py "search string"
+  * Auth (necessary only for bypassing rate limits): Github auth token as AUTH_TOKEN in github_auth.py
+  * Usage: $ python3 get_github_details.py "search string"
   * Output: spreadsheet with relevant github (selective) details named "search_string_github.xlsx"
 - [ ] Search Stackexchange for name/username/email and retrive relevant data.
 - [ ] Identify data pertinent for rating the candidate.
