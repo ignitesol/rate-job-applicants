@@ -13,7 +13,7 @@ import sys
 import os
 from pandas.io.json import json_normalize
 
-
+# initialize 
 requests_session = requests.Session()
 
 
@@ -107,6 +107,7 @@ def parse_user_details(matching_users):
     # return combined dataframe
     return df_all
 
+
 if __name__ == '__main__':
     # check if auth token file exists, get token if it does
     if os.path.isfile('github_auth.py'):
@@ -115,8 +116,9 @@ if __name__ == '__main__':
         AUTH_HEADER = {'Authorization':'token ' + AUTH_TOKEN}
     # proceed without auth if there is no auth token file
     else:
-        print("Trying without authentication.(will be rate limited; email-ids may not be available)")
-        print("Store github AUTH_TOKEN in github_auth.py to avoid 'API rate limit exceeded...' issue")
+        print("Trying without authentication.(rate limited; email-ids may not be available)")
+        print("Rate limit without authentication is 60 requests/hour")
+        print("Store github AUTH_TOKEN in github_auth.py to avoid rate limitation issue")
         AUTH_HEADER = {}
     # check if search string was provided as part of command line
     try:
