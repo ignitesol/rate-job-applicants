@@ -11,10 +11,26 @@ import json
 import pandas as pd
 import sys
 import os
+import base64
+import nltk
 from pandas.io.json import json_normalize
 
 # initialize 
 requests_session = requests.Session()
+
+# add nltk_data path
+nltk.data.path.append('nltk_data')
+# set of stopwords
+STOPWORDS = set(nltk.corpus.stopwords.words('english'))
+#with open('nltk_data/corpora/stopwords/english','r') as f_stop:
+#    STOPWORDS = set(f_stop.read().splitlines())
+    
+def get_keywords(readme):
+    tokens_all = nltk.word_tokenize(readme)
+    tokens_set = set(tokens_all)
+    tokens_alpha = [s.lower() for s in tokens_set if s.isalpha()]
+    tokens_nostop = set(tokens_alpha) - STOPWORDS
+    return list(tokens_nostop)
 
 
 def github_get_request(url, params={}):
@@ -76,7 +92,7 @@ def parse_user_details(matching_users):
             contribs_url = repo['contributors_url']
             # get list of all contributions to the rep
             try:
-                contribs_list = github_get_request(contribs_url)
+                contribs_list = github_get_request(url=contribs_url)
             except json.JSONDecodeError:
                 continue
             # dict of {user:contributions} for the rep
@@ -92,6 +108,14 @@ def parse_user_details(matching_users):
             df_repo['contribution %'] = user_contrib
             df_repo['contributions'] = contribs_dict.get(login,0)
             df_repo['owner'] = repo.get('owner',{}).get('login','')
+            # get readme
+            readme_url = repo['url'] + '/readme'
+            readme_data = github_get_request(url=readme_url)
+            readme_content = readme_data.get('content','')
+            readme_binstr = base64.b64decode(readme_content)
+            readme = readme_binstr.decode('utf-8')
+            keywords_list = get_keywords(readme)
+            df_repo['readme_keywords'] = ','.join(keywords_list)
             # append user id details to the repo dataframe
             user_details = ['login','name','email','score']
             for item in user_details:
@@ -129,7 +153,7 @@ if __name__ == '__main__':
     # fields to output to excel file
     fields = ['user_name', 'user_login', 'user_email', 'user_score', 'full_name', 'owner',
               'html_url', 'language', 'updated_at', 'forks_count', 'stargazers_count',
-              'contribution %', 'contributions']
+              'contribution %', 'contributions','readme_keywords']
     print("\nFinding users matching '{}' ...".format(search_string))
     # find all users matchin the search string
     matching_users, users_list = get_matching_users(search_string)
@@ -144,6 +168,6 @@ if __name__ == '__main__':
         # get all repos for the user and output to a dataframe
         tabulated_details = parse_user_details(matching_users)[fields]
         # write dataframe to excel file
-        file_name = search_string.replace(' ','_') + '_github.xlsx'
+        file_name = os.path.join('github_output',search_string.replace(' ','_') + '_github.xlsx')
         tabulated_details.to_excel(file_name)
         print('Details saved to {}'.format(file_name),'\n')
