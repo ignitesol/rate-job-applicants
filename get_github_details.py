@@ -10,13 +10,18 @@ import requests
 import json
 import pandas as pd
 import sys
-import github_auth
+import os
 from pandas.io.json import json_normalize
 
-AUTH_TOKEN = github_auth.AUTH_TOKEN
-AUTH_HEADER = {'Authorization':'token ' + AUTH_TOKEN}
-
 requests_session = requests.Session()
+
+def check_error_msg(resp_json):
+    if 'message' in resp_json:  
+        error_msg = resp_json.get('message','')
+        print("\nError: '{}'.\n\nExiting.\n".format(error_msg))
+        sys.exit(0)
+    else:
+        return
 
 def get_matching_users(search_string):
     url = 'https://api.github.com/search/users'
@@ -26,10 +31,12 @@ def get_matching_users(search_string):
               'order':'desc'}
     resp = requests_session.get(url, params=params, headers=AUTH_HEADER)
     resp_json = resp.json()
+    check_error_msg(resp_json)
     users_list = []
     for i,user_details in enumerate(resp_json.get('items',[])):
         profile_url = 'https://api.github.com/users/' + user_details['login']
         profile = requests_session.get(profile_url, headers=AUTH_HEADER).json()
+        check_error_msg(profile)
         resp_json['items'][i] = {**user_details, **profile}
         users_list.append((profile['login'], profile['name'], profile['email']))
     return resp_json, users_list
@@ -39,6 +46,7 @@ def get_user_repos(login):
     params = {'type':'all'}
     resp = requests_session.get(url, params=params, headers=AUTH_HEADER)
     resp_json = resp.json()
+    check_error_msg(resp_json)
     return resp_json
 
 def parse_user_details(matching_users):
@@ -54,6 +62,7 @@ def parse_user_details(matching_users):
                 contribs_list = requests_session.get(contribs_url, headers=AUTH_HEADER).json()
             except json.JSONDecodeError:
                 continue
+            check_error_msg(contribs_list)
             contribs_dict = {contrib['login']:contrib.get('contributions',0)\
                                 for contrib in contribs_list}
             sum_contribs = sum(contrib for contrib in contribs_dict.values())
@@ -75,6 +84,15 @@ def parse_user_details(matching_users):
     return df_all
 
 if __name__ == '__main__':
+    if os.path.isfile('github_auth.py'):
+        import github_auth
+        AUTH_TOKEN = github_auth.AUTH_TOKEN
+        AUTH_HEADER = {'Authorization':'token ' + AUTH_TOKEN}
+    else:
+        print("\nRequires github authentication token.")
+        print("Store the token as AUTH_TOKEN in github_auth.py")
+        print("Trying without authentication. (will be rate limited; email-ids may not be available)")
+        AUTH_HEADER = {}
     try:
         search_string = sys.argv[1]
     except IndexError:
@@ -90,7 +108,7 @@ if __name__ == '__main__':
         print("Found 0 users matching '{}'; exiting\n".format(search_string))
         sys.exit(0)
     else:
-        print("Found {} users matching '{}'; fetching details ...".format(n_matches, search_string))
+        print("Found {} users matching '{}'.\nFetching details ...".format(n_matches, search_string))
         tabulated_details = parse_user_details(matching_users)[fields]
         file_name = search_string.replace(' ','_') + '_github.xlsx'
         tabulated_details.to_excel(file_name)
