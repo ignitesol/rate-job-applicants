@@ -8,11 +8,13 @@ Created on Wed Apr  5 13:17:58 2017
 
 import requests
 import json
-import pandas as pd
 import sys
 import os
 import base64
+import argparse
+
 import nltk
+import pandas as pd
 from pandas.io.json import json_normalize
 
 # initialize 
@@ -133,23 +135,24 @@ def parse_user_details(matching_users):
 
 
 if __name__ == '__main__':
+
+    parser = argparse.ArgumentParser("Github job rater")
+    parser.add_argument("search", type=str, nargs="+")
+    args = parser.parse_args()
+    search_string = " ".join(args.search)
+
     # check if auth token file exists, get token if it does
-    if os.path.isfile('github_auth.py'):
+    try:
         import github_auth
         AUTH_TOKEN = github_auth.AUTH_TOKEN
         AUTH_HEADER = {'Authorization':'token ' + AUTH_TOKEN}
     # proceed without auth if there is no auth token file
-    else:
+    except ImportError:
         print("Trying without authentication.(rate limited; email-ids may not be available)")
         print("Rate limit without authentication is 60 requests/hour")
         print("Store github AUTH_TOKEN in github_auth.py to avoid rate limitation issue")
         AUTH_HEADER = {}
-    # check if search string was provided as part of command line
-    try:
-        search_string = sys.argv[1]
-    except IndexError:
-        print('\nRequires search string')
-        sys.exit(0)
+    
     # fields to output to excel file
     fields = ['user_name', 'user_login', 'user_email', 'user_score', 'full_name', 'owner',
               'html_url', 'language', 'updated_at', 'forks_count', 'stargazers_count',
