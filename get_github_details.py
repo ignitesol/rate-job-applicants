@@ -162,21 +162,25 @@ def parse_user_details(matching_users, auth_header):
     return df_all
 
 
-def get_github_auth(auth_file = 'github_auth.py'):
+def get_github_auth(auth_token=None):
     '''Get authentication header using auth token in auth_file.
     Returns auth_header for GET requests
     '''
-    # check if auth token file exists, get token if it does
-    try:
-        import github_auth
-        auth_token = github_auth.AUTH_TOKEN
+    if auth_token is not None:
         auth_header = {'Authorization':'token ' + auth_token}
-    # proceed without auth if there is no auth token file
-    except ImportError:
-        print("Trying without authentication.(rate limited; email-ids may not be available)")
-        print("Rate limit without authentication is 60 requests/hour")
-        print("Store github AUTH_TOKEN in github_auth.py to avoid rate limitation issue")
-        auth_header = {}
+    # if auth token is not provided as an argv
+    else:
+        # check if auth token file exists, get token if it does
+        try:
+            import github_auth
+            auth_token = github_auth.AUTH_TOKEN
+            auth_header = {'Authorization':'token ' + auth_token}
+        # proceed without auth if there is no auth token file
+        except ImportError:
+            print("Trying without authentication.(rate limited; email-ids may not be available)")
+            print("Rate limit without authentication is 60 requests/hour")
+            print("Store github AUTH_TOKEN in github_auth.py to avoid rate limitation issue")
+            auth_header = {}
     return auth_header
 
 
@@ -207,7 +211,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     search_string = " ".join(args.search_string)
     # get github authentication - as header for GET request
-    auth_header = get_github_auth(auth_file='github_auth.py')
+    auth_header = get_github_auth(auth_token=None)
     # find all users matchin the search string
     matching_users, users_list = get_matching_users(search_string, auth_header=auth_header)
     # get all details for mathing users and save specific fields to excel sheet

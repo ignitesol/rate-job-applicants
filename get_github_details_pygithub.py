@@ -145,10 +145,8 @@ def init_github_object(auth_token=None):
     '''Get authentication header using auth token in auth_file.
     Returns auth_header for GET requests
     '''
-    # if auth token is provided as an argv
-    if auth_token is not None:
-        g = Github(login_or_token=auth_token, timeout=60)
-    else:
+    # if auth token is not provided as an argv
+    if auth_token == None:
         # check if auth token file exists, get token if it does
         try:
             import github_auth
@@ -158,9 +156,9 @@ def init_github_object(auth_token=None):
             print("Trying without authentication.(rate limited; email-ids may not be available)")
             print("Rate limit without authentication is 60 requests/hour")
             print("Store github AUTH_TOKEN in github_auth.py to avoid rate limitation issue")
-            auth_token = None
+            auth_token == None
         # initialize github object
-        g = Github(login_or_token=auth_token)
+    g = Github(login_or_token=auth_token, timeout=60)
     return g
 
 
