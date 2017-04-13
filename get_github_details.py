@@ -98,7 +98,7 @@ def parse_contributions(df_repo, user, repo, auth_header):
     df_repo['contribution %'] = user_contrib
     df_repo['contributions'] = contribs_dict.get(login,0)
     df_repo['owner'] = repo.get('owner',{}).get('login','')
-    return
+    return df_repo
 
 
 def parse_readme(df_repo, user, repo, auth_header):
@@ -111,7 +111,7 @@ def parse_readme(df_repo, user, repo, auth_header):
     readme = readme_binstr.decode('utf-8')
     keywords_list = get_keywords(readme)
     df_repo['readme_keywords'] = ','.join(keywords_list)
-    return
+    return df_repo
 
 
 def add_user_details(df_repo, user, user_fields):
@@ -119,7 +119,7 @@ def add_user_details(df_repo, user, user_fields):
     '''
     for item in user_fields:
         df_repo['user_' + item] = user.get(item,'')
-    return
+    return df_repo
 
 
 def convert_datetime_cols(df_all, date_cols):
@@ -127,7 +127,7 @@ def convert_datetime_cols(df_all, date_cols):
     '''
     for col in date_cols:
         df_all[col] = pd.to_datetime(df_all[col],infer_datetime_format=True)
-    return
+    return df_all
 
 def parse_user_details(matching_users, auth_header):
     '''For each of the users matching the search string,
@@ -147,17 +147,17 @@ def parse_user_details(matching_users, auth_header):
             # json to dataframe using builtin pandas method
             df_repo = json_normalize(repo)
             # parse contributions
-            parse_contributions(df_repo, user, repo, auth_header)
+            df_repo = parse_contributions(df_repo, user, repo, auth_header)
             # parse readme readme
-            parse_readme(df_repo, user, repo, auth_header)
+            df_repo = parse_readme(df_repo, user, repo, auth_header)
             # append user id details to the repo dataframe
-            add_user_details(df_repo, user, user_fields = ['login','name','email','score'])
+            df_repo = add_user_details(df_repo, user, user_fields = ['login','name','email','score'])
             # add it to the list of repo dataframes
             repos_dfs.append(df_repo)
     # combine all the repo dataframes for each of the matching users
     df_all = pd.concat(repos_dfs, axis=0, ignore_index=True)
     # convert datetime columns to datetime objects
-    convert_datetime_cols(df_all, date_cols=['updated_at','created_at', 'pushed_at'])
+    df_all = convert_datetime_cols(df_all, date_cols=['updated_at','created_at', 'pushed_at'])
     # return combined dataframe
     return df_all
 
@@ -201,23 +201,18 @@ def get_github_profiles(matching_users, users_list, fields, auth_header):
 
 
 if __name__ == '__main__':
-    # check if search string was provided as argv
+    # get search_string from argv
     parser = argparse.ArgumentParser("python3 get_github_details.py")
     parser.add_argument("search_string", type=str, nargs="+")
     args = parser.parse_args()
     search_string = " ".join(args.search_string)
-#    try:
-#        search_string = sys.argv[1]
-#    except IndexError:
-#        print('\nRequires search string')
-#        sys.exit(0)
     # get github authentication - as header for GET request
     auth_header = get_github_auth(auth_file='github_auth.py')
     # find all users matchin the search string
     matching_users, users_list = get_matching_users(search_string, auth_header=auth_header)
     # get all details for mathing users and save specific fields to excel sheet
     # fields to output to excel file
-    fields = ['user_name', 'user_login', 'user_email', 'user_score', 'full_name', 'owner',
+    fields = ['user_name', 'user_login', 'user_email', 'full_name', 'owner',
               'html_url', 'language', 'updated_at', 'forks_count', 'stargazers_count',
               'contribution %', 'contributions','readme_keywords']
     tabulated_details = get_github_profiles(matching_users, users_list, fields, auth_header)
