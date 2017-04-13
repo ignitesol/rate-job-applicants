@@ -167,7 +167,7 @@ def init_github_object(auth_token=None):
 if __name__ == '__main__':
     search_string = "iqbal ansari"
     # get search_string from argv
-    parser = argparse.ArgumentParser("python3 get_github_details.py")
+    parser = argparse.ArgumentParser("python3 get_github_details_pygithub.py")
     parser.add_argument("search_string", type=str, nargs="+")
     args = parser.parse_args()
     search_string = " ".join(args.search_string)
