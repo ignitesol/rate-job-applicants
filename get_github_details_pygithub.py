@@ -150,12 +150,13 @@ def init_github_object(auth_token=None):
         # check if auth token file exists, get token if it does
         try:
             import github_auth
+            print("\nReading auth_token from github_auth.py")
             auth_token = github_auth.AUTH_TOKEN
         # proceed without auth if there is no auth token file
         except ImportError:
-            print("Trying without authentication.(rate limited; email-ids may not be available)")
+            print("\nAuthentication token not privided; Can't find github_auth.py; Trying without authentication.")
             print("Rate limit without authentication is 60 requests/hour")
-            print("Store github AUTH_TOKEN in github_auth.py to avoid rate limitation issue")
+            print("Store github AUTH_TOKEN in github_auth.py to avoid rate limitation")
             auth_token == None
         # initialize github object
     g = Github(login_or_token=auth_token, timeout=60)
@@ -163,14 +164,17 @@ def init_github_object(auth_token=None):
 
 
 if __name__ == '__main__':
-    search_string = "iqbal ansari"
     # get search_string from argv
-    parser = argparse.ArgumentParser("python3 get_github_details_pygithub.py")
-    parser.add_argument("search_string", type=str, nargs="+")
+    parser = argparse.ArgumentParser("Get github data for users matching given string")
+    parser.add_argument("search_string", type=str, nargs="?",
+                        help="name to search in user's name/email/login fields")
+    parser.add_argument("auth_token", type=str, nargs="?",
+                        help="github authentication token (for avoiding request rate limitation)")
     args = parser.parse_args()
-    search_string = " ".join(args.search_string)
+    search_string = args.search_string
+    auth_token = args.auth_token
     # initialize github object
-    g = init_github_object(auth_token=None)
+    g = init_github_object(auth_token=auth_token)
     # find all users matchin the search string
     search_result = g.search_users(search_string, sort='repositories' ,order='desc')
     matching_users = list(search_result)

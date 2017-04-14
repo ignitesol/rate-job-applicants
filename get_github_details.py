@@ -98,6 +98,8 @@ def parse_contributions(df_repo, user, repo, auth_header):
     df_repo['contribution %'] = user_contrib
     df_repo['contributions'] = contribs_dict.get(login,0)
     df_repo['owner'] = repo.get('owner',{}).get('login','')
+    print("\t\t{:3.0f}% contribution in '{}' ({})".format(user_contrib, repo.get('full_name',''),
+          repo.get('language','')))
     return df_repo
 
 
@@ -155,7 +157,11 @@ def parse_user_details(matching_users, auth_header):
             # add it to the list of repo dataframes
             repos_dfs.append(df_repo)
     # combine all the repo dataframes for each of the matching users
-    df_all = pd.concat(repos_dfs, axis=0, ignore_index=True)
+    try:
+        df_all = pd.concat(repos_dfs, axis=0, ignore_index=True)
+    except ValueError:
+        print('No repos found for any of the matching users.\n')
+        sys.exit(0)
     # convert datetime columns to datetime objects
     df_all = convert_datetime_cols(df_all, date_cols=['updated_at','created_at', 'pushed_at'])
     # return combined dataframe
@@ -173,11 +179,12 @@ def get_github_auth(auth_token=None):
         # check if auth token file exists, get token if it does
         try:
             import github_auth
+            print("\nReading auth_token from github_auth.py")
             auth_token = github_auth.AUTH_TOKEN
             auth_header = {'Authorization':'token ' + auth_token}
         # proceed without auth if there is no auth token file
         except ImportError:
-            print("Trying without authentication.(rate limited; email-ids may not be available)")
+            print("\nAuthentication token not privided; Can't find github_auth.py; Trying without authentication.")
             print("Rate limit without authentication is 60 requests/hour")
             print("Store github AUTH_TOKEN in github_auth.py to avoid rate limitation issue")
             auth_header = {}
@@ -206,10 +213,14 @@ def get_github_profiles(matching_users, users_list, fields, auth_header):
 
 if __name__ == '__main__':
     # get search_string from argv
-    parser = argparse.ArgumentParser("python3 get_github_details.py")
-    parser.add_argument("search_string", type=str, nargs="+")
+    parser = argparse.ArgumentParser("Get github data for users matching given string")
+    parser.add_argument("search_string", type=str, nargs="?",
+                        help="name to search in user's name/email/login fields")
+    parser.add_argument("auth_token", type=str, nargs="?",
+                        help="github authentication token (for avoiding request rate limitation)")
     args = parser.parse_args()
-    search_string = " ".join(args.search_string)
+    search_string = args.search_string
+    auth_token = args.auth_token
     # get github authentication - as header for GET request
     auth_header = get_github_auth(auth_token=None)
     # find all users matchin the search string
