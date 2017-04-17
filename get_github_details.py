@@ -184,7 +184,7 @@ def get_github_auth(auth_token=None):
             auth_header = {'Authorization':'token ' + auth_token}
         # proceed without auth if there is no auth token file
         except ImportError:
-            print("\nAuthentication token not privided; Can't find github_auth.py; Trying without authentication.")
+            print("\nAuthentication token not provided; Can't find github_auth.py; Trying without authentication.")
             print("Rate limit without authentication is 60 requests/hour")
             print("Store github AUTH_TOKEN in github_auth.py to avoid rate limitation issue")
             auth_header = {}
@@ -213,9 +213,11 @@ def get_github_profiles(matching_users, users_list, fields, auth_header):
 
 if __name__ == '__main__':
     # get search_string and auth_token from command line arguments
-    parser = argparse.ArgumentParser("\npython3 get_github_details.py")
-    parser.add_argument("search_string", type=str,
-                        help="name to search for in user's name/email/login fields")
+    usage = "\npython3 get_github_details.py"
+    description = "Script to get job candidate's github profile"
+    parser = argparse.ArgumentParser(usage=usage, description=description)
+    parser.add_argument("search_string", type=str, nargs=1,
+                        help="substring to search for in users' name/email/login fields")
     parser.add_argument("auth_token", type=str, nargs="?",
                         help="github authentication token (to avoid rate limitation)")
     args = parser.parse_args()
