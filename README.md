@@ -22,4 +22,4 @@
      * Expertise Data: For each tag (skill/expertise) : Answer_count, Answer_score, Question_count, Question_score
 - [ ] Aggregate metric(s) for rating the candidate.
   * __Github Metric__: Weighted average? Sum? of all the individual repository scores; overall as well as grouped by Language
-  * __Stackoverflow Metric__: Weighted Average
+  * __Stackoverflow Metric__: Weighted Average of Overall Data and Expertise Data; overall as well as grouped by Expertise
