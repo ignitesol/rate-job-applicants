@@ -21,5 +21,6 @@
      * Overall Data: Reputation, Badge_Count (Bronze, Silver, Gold), Answer_acceptance_rate
      * Expertise Data: For each tag (skill/expertise) : Answer_count, Answer_score, Question_count, Question_score
 - [ ] Aggregate metric(s) for rating the candidate.
-  * __Github Metric__: Weighted average? Sum? of all the individual repository scores; overall as well as grouped by Language
-  * __Stackoverflow Metric__: Weighted Average of Overall Data and Expertise Data; overall as well as grouped by Expertise
+  * __Github Rating__: Weighted average? Sum? of all the individual repository scores; overall as well as grouped by Language
+  * __Stackoverflow Rating__: Weighted average of Overall Data and Expertise Data; overall as well as grouped by Expertise
+  * __Overall Rating__: Weighted harmonic mean or Github Rating and Stackoverflow Rating
