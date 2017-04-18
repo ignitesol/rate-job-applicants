@@ -5,15 +5,15 @@
 * Use a suitable methodology for rating the candidate using this data.
 
 ### Implemented Functionality
-- [x] __Search Github for a specified name/username/email and retrive users' data.__
+- [X] __Search Github for a specified name/username/email and retrive users' data.__
   * Auth: Github authentication token either as command-line input or as AUTH_TOKEN in github_auth.py. (Authentication is necessary for bypassing rate limit of 60 requests/hour)
   * Usage: `$ python3 get_github_details.py "search string" ["authentication_token"]`
   * Output: spreadsheet with relevant github (selective) details named "search_string_github.xlsx"
-- [x] __Search Stackexchange for name/username/email and retrive users' data.__
+- [X] __Search Stackexchange for name/username/email and retrive users' data.__
   * Auth: Authentication token either as command-line input or as AUTH_KEY in stackoverflow_auth.py. (Authentication is necessary for bypassing rate limit of 300 requests/day)
   * Usage: `$ python3 get_stackoverflow_details.py [-i "user_id" | -s "search string"] [-a "authentication_token"]`
   * Output: spreadsheet with relevant stackoverflow (selective) details named "search_string_stackoverflow.xlsx"
-- [ ] __Relevant data from Github and Stackoverflow.__
+- [X] __Relevant data from Github and Stackoverflow.__
   * __Github Data__:
      * Data from each repository: User_contributions, User_contributions_%, Stars_count, Forks_count, Language, Owner_type (User or Not-User)
      * Repository Score: Weighted average of all quantitative fields, grouped by Owner_type, grouped by language.
