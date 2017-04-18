@@ -1,10 +1,10 @@
-## Purpose
+### Purpose
 * Search Github and Stackexchange for information about a job candidate.
 * Retrive all relevant data for the candidate from Github and Stackexchange.
 * Identify and extract data pertinent for rating the candidate.
 * Use a suitable methodology for rating the candidate using this data.
 
-## Implemented Functionality
+### Implemented Functionality
 - [x] Search Github for a specified name/username/email and retrive users' data.
   * Auth: Github authentication token either as command-line input or as AUTH_TOKEN in github_auth.py. (Authentication is necessary for bypassing rate limit of 60 requests/hour)
   * Usage: `$ python3 get_github_details.py "search string" ["authentication_token"]`
