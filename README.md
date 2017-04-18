@@ -14,4 +14,8 @@ __Implemented Functionality__
   * Usage: `$ python3 get_stackoverflow_details.py [-i "user_id" | -s "search string"] [-a "authentication_token"]`
   * Output: spreadsheet with relevant stackoverflow (selective) details named "search_string_stackoverflow.xlsx"
 - [ ] Identify relevant data from Github and Stackoverflow.
+  * __Github Rating__:
+     * Data from each repository: User_Contributions, User_Contribution_%, Stars_Count, Forks_Count, Language, Owner_Type (User or Not-User)
+     * Repository Score: Weighted average of quantitative data, grouped by Owner_Type, grouped by Language.
+     * Overall Metric: Weighted average? Sum? of all the individual repository scores.
 - [ ] Identify methodology and/or an aggregate metric for rating the candidate.
