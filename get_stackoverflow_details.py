@@ -14,6 +14,7 @@ import argparse
 import stackexchange
 import nltk
 import pandas as pd
+import numpy as np
 
 # add nltk_data folder to the list of NLTK library paths
 nltk.data.path.insert(0,'nltk_data')
@@ -22,7 +23,7 @@ STOPWORDS = set(nltk.corpus.stopwords.words('english'))
 
 
 def init_stackoverflow_object(auth_key=None):
-    '''Get authentication header using authentication key provided 
+    '''Get authentication header using authentication key provided
     either as part of command line or stored in stackoverflow_auth.py.
     '''
     # if auth token is not provided as an argv
@@ -63,11 +64,12 @@ def get_top_answers_tags(user):
         df = pd.io.json.json_normalize(tag.json)
         tags_dfs.append(df)
     try:
-        df_all = pd.concat(tags_dfs, axis=0).sort_values(by = 'answer_count', ascending=False)
+        df_all = pd.concat(tags_dfs, axis=0)[cols]
     except ValueError:
         df_all = pd.DataFrame(columns=cols)
-    return df_all[cols]
-    
+    df_all['value'] = df_all.sum(axis=1)
+    return df_all.sort_values(by = 'value', ascending=False)
+
 
 def parse_user_details(user):
     '''For given user get all the user's details and parse the information to a dataframe.
@@ -86,35 +88,81 @@ def parse_user_details(user):
         user_df[col] = pd.to_datetime(user_df[col], unit='s', infer_datetime_format=True)
     # transpose user_df
     user_df = user_df.T
+    user_df.index.name = 'field'
+    user_df.rename(columns={0:'value'}, inplace=True)
     # cleanup tags_df
     tags_df = tags_df.set_index('tag_name', drop=True)
     return user_df, tags_df
 
 
-def get_stackoverflow_profiles(matching_users, search_string):
+def apply_func_wgt_bias(x, ops):
+    func = ops.get('func',float)
+    wgt_x = ops.get('wgt_x',1)
+    wgt_func = ops.get('wgt_func',1)
+    bias_x = ops.get('bias_x',0)
+    bias_func = ops.get('bias_func',0)
+    result = wgt_func * func( x * wgt_x + bias_x) + bias_func
+    return result
+
+
+def overall_rating(user_df, tags_df):
+    user_id_fields = ['display_name', 'user_id', 'age', 'location']
+    general_rating_fields = ['accept_rate', 'reputation', 'badge_counts.bronze',
+                             'badge_counts.silver', 'badge_counts.gold']
+    ratings_df = user_df.loc[user_id_fields + general_rating_fields].copy()
+    # append user details
+    ratings_df.loc[user_id_fields,'field_type'] = 'user_details'
+    # append geneal ratings
+    ratings_df.loc[general_rating_fields, 'field_type'] = 'general_ratings'
+    ratings_df['value'] = ratings_df['value'].fillna(0)
+    # calculate overall rating
+    ops = {'accept_rate': {'func':np.exp, 'wgt_x':0.05, 'wgt_func':1, 'bias_x':0, 'bias_func':-1},
+           'badge_counts.bronze': {'func':np.abs, 'wgt_x':1, 'wgt_func':1, 'bias_x':0, 'bias_func':0},
+           'badge_counts.silver': {'func':np.abs, 'wgt_x':1, 'wgt_func':1, 'bias_x':0, 'bias_func':0},
+           'badge_counts.gold': {'func':np.abs, 'wgt_x':1, 'wgt_func':1, 'bias_x':0, 'bias_func':0},
+           'reputation': {'func':np.log, 'wgt_x':1, 'wgt_func':100, 'bias_x':0, 'bias_func':0}}
+    ratings = [apply_func_wgt_bias(ratings_df.loc[key,'value'], opr) for key,opr in ops.items()]
+    overall_rating = int(sum(ratings))
+    # append overall rating
+    ratings_df.loc['overall_rating', 'value'] = overall_rating
+    ratings_df.loc['overall_rating', 'field_type'] = 'overall_rating'
+    # append tags
+    top_tags_df = tags_df['value'].head(20).to_frame()
+    top_tags_df['field_type'] = 'expertise_ratings'
+    ratings_df = ratings_df.append(top_tags_df)
+    ratings_df.index.name = 'field'
+    ratings_df = ratings_df.set_index(['field_type',ratings_df.index])
+    return ratings_df
+
+
+def get_stackoverflow_profiles(matching_users, search_kw):
     '''Get all details for matching users and save as excel file
     '''
     n_matches = len(matching_users)
+    search_term = list(search_kw.values())[0]
     # exit if there are no matches
     if n_matches == 0:
-        print("Found 0 users matching '{}'; exiting\n".format(search_string))
+        print("Found 0 users matching '{}'; exiting\n".format(search_term))
         sys.exit(0)
     # get details of all the matching users, parse the details to dataframe, write it to excel file
     else:
-        print("Found {} user(s) matching '{}'.\nFetching details ...".format(n_matches, search_string))
+        print("Found {} user(s) matching '{}'.\nFetching details ...".format(n_matches, search_term))
         for i,user in enumerate(matching_users):
             # get all repos for the user and output to a dataframe
             print("\tGetting user_df and tags_df for '{}' ...".format(user.display_name))
             user_df, tags_df = parse_user_details(user)
-            # write dataframe to excel file
-            file_name = '{}_{}_stackoverflow.xlsx'.format(search_string.replace(' ','_'), str(i+1))
+            # get overall score
+            ratings_df = overall_rating(user_df, tags_df)
+            # write dataframes to excel file
+            file_name = '{}_{}_stackoverflow.xlsx'.format(search_term.replace(' ','_'), str(i+1))
             file_path = os.path.join('stackoverflow_output', file_name)
             excel_writer = pd.ExcelWriter(file_path)
-            user_df.to_excel(excel_writer, sheet_name='overall_details', header=False)
+            ratings_df.to_excel(excel_writer, sheet_name='overall_ratings')
+            user_df.to_excel(excel_writer, sheet_name='user_details', header=False)
             tags_df.to_excel(excel_writer, sheet_name='top_answers_tags')
             excel_writer.save()
             print('\tDetails saved to {}'.format(file_name),'\n')
-    return user_df, tags_df
+    return user_df, tags_df, ratings_df
 
 
 if __name__ == '__main__':
@@ -145,4 +193,4 @@ if __name__ == '__main__':
     # find all users matching the search criteria
     matching_users = so.users(**search_kw)
     # get all details for matching users and save as tabular form to excel sheet
-    user_df, tags_df = get_stackoverflow_profiles(matching_users, str(user_id or search_string))
+    user_df, tags_df, ratings_df = get_stackoverflow_profiles(matching_users, search_kw)
