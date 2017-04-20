@@ -35,7 +35,8 @@ def init_stackoverflow_object(auth_key=None):
             auth_key = stackoverflow_auth.AUTH_KEY
         # proceed without auth if there is no auth token file
         except ImportError:
-            print("\nAuthentication token not provided; Can't find stackoverflow_auth.py; Trying without authentication.")
+            print("\n", '''Authentication token not provided; Can't find stackoverflow_auth.py;
+                  Trying without authentication.''')
             print("Rate limit without authentication is 300 requests/day")
             print("Store stackoverflow AUTH_KEY in stackoverflow_auth.py to avoid rate limitation")
             auth_key == None
@@ -115,12 +116,14 @@ def overall_rating(user_df, tags_df):
     # append geneal ratings
     ratings_df.loc[general_rating_fields, 'field_type'] = 'general_ratings'
     ratings_df['value'] = ratings_df['value'].fillna(0)
-    # calculate overall rating
-    ops = {'accept_rate': {'func':np.exp, 'wgt_x':0.05, 'wgt_func':1, 'bias_x':0, 'bias_func':-1},
-           'badge_counts.bronze': {'func':np.abs, 'wgt_x':1, 'wgt_func':1, 'bias_x':0, 'bias_func':0},
-           'badge_counts.silver': {'func':np.abs, 'wgt_x':1, 'wgt_func':1, 'bias_x':0, 'bias_func':0},
-           'badge_counts.gold': {'func':np.abs, 'wgt_x':1, 'wgt_func':1, 'bias_x':0, 'bias_func':0},
-           'reputation': {'func':np.log, 'wgt_x':1, 'wgt_func':100, 'bias_x':0, 'bias_func':0}}
+    # calculate overall rating as SUM( wgt_func*func(wgt_x*x + bias_x) + bias_func)
+    ops = {
+        'accept_rate': {'func':np.exp, 'wgt_x':0.05, 'wgt_func':1, 'bias_x':0, 'bias_func':-1},
+        'badge_counts.bronze': {'func':np.abs, 'wgt_x':1, 'wgt_func':1, 'bias_x':0, 'bias_func':0},
+        'badge_counts.silver': {'func':np.abs, 'wgt_x':1, 'wgt_func':1, 'bias_x':0, 'bias_func':0},
+        'badge_counts.gold': {'func':np.abs, 'wgt_x':1, 'wgt_func':1, 'bias_x':0, 'bias_func':0},
+        'reputation': {'func':np.log, 'wgt_x':1, 'wgt_func':100, 'bias_x':0, 'bias_func':0}
+        }
     ratings = [apply_func_wgt_bias(ratings_df.loc[key,'value'], opr) for key,opr in ops.items()]
     overall_rating = int(sum(ratings))
     # append overall rating
@@ -146,7 +149,7 @@ def get_stackoverflow_profiles(matching_users, search_kw):
         sys.exit(0)
     # get details of all the matching users, parse the details to dataframe, write it to excel file
     else:
-        print("Found {} user(s) matching '{}'.\nFetching details ...".format(n_matches, search_term))
+        print("Found {} user(s) matching '{}'.\nFetching details ...".format(n_matches,search_term))
         for i,user in enumerate(matching_users):
             # get all repos for the user and output to a dataframe
             print("\tGetting user_df and tags_df for '{}' ...".format(user.display_name))
