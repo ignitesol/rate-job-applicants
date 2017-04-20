@@ -97,6 +97,8 @@ def parse_user_details(user):
 
 
 def apply_func_wgt_bias(x, ops):
+    ''' Returns wgt_func * func( x * wgt_x + bias_x) + bias_func
+    '''
     func = ops.get('func',float)
     wgt_x = ops.get('wgt_x',1)
     wgt_func = ops.get('wgt_func',1)
@@ -107,6 +109,8 @@ def apply_func_wgt_bias(x, ops):
 
 
 def overall_rating(user_df, tags_df):
+    '''Get a tabulated form for user details, general ratings, overall rating, top tag ratings
+    '''
     user_id_fields = ['display_name', 'user_id', 'age', 'location']
     general_rating_fields = ['accept_rate', 'reputation', 'badge_counts.bronze',
                              'badge_counts.silver', 'badge_counts.gold']
@@ -122,7 +126,7 @@ def overall_rating(user_df, tags_df):
         'badge_counts.bronze': {'func':np.abs, 'wgt_x':1, 'wgt_func':1, 'bias_x':0, 'bias_func':0},
         'badge_counts.silver': {'func':np.abs, 'wgt_x':1, 'wgt_func':1, 'bias_x':0, 'bias_func':0},
         'badge_counts.gold': {'func':np.abs, 'wgt_x':1, 'wgt_func':1, 'bias_x':0, 'bias_func':0},
-        'reputation': {'func':np.log, 'wgt_x':1, 'wgt_func':100, 'bias_x':0, 'bias_func':0}
+        'reputation': {'func':np.log, 'wgt_x':1, 'wgt_func':100, 'bias_x':0, 'bias_func':1}
         }
     ratings = [apply_func_wgt_bias(ratings_df.loc[key,'value'], opr) for key,opr in ops.items()]
     overall_rating = int(sum(ratings))
