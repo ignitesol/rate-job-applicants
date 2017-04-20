@@ -7,7 +7,7 @@
 ### Implemented Functionality
 - [X] __Search Github for a specified name/username/email and retrive users' data.__
   * Auth: Github authentication token either as command-line input or as AUTH_TOKEN in github_auth.py. (Authentication is necessary for bypassing rate limit of 60 requests/hour)
-  * Usage: `$ python3 get_github_details.py "search string" ["authentication_token"]`
+  * Usage: `$ python3 get_github_details.py -s "search string" [-a "authentication_token"]`
   * Output: spreadsheet with relevant github (selective) details named "search_string_github.xlsx"
 - [X] __Search Stackexchange for name/username/email and retrive users' data.__
   * Auth: Authentication token either as command-line input or as AUTH_KEY in stackoverflow_auth.py. (Authentication is necessary for bypassing rate limit of 300 requests/day)
@@ -20,7 +20,8 @@
   * __Stackoverflow Data__:
      * Overall Data: Reputation, Badge_Count (Bronze, Silver, Gold), Answer_acceptance_rate
      * Expertise(tags) Data: For each tag (skill/expertise) : Answer_count, Answer_score, Question_count, Question_score
-- [ ] __Aggregate metric(s) for rating the candidate.__
-  * __Github Rating__: Weighted average? Sum? of all the individual repository scores; overall as well as grouped by Language
-  * __Stackoverflow Rating__: Weighted average of Overall Data and Expertise Data; overall as well as grouped by Expertise (Tags)
-  * __Overall Rating__: Weighted harmonic mean or Github Rating and Stackoverflow Rating
+- [X] __Aggregate metric(s) for rating the candidate.__
+  * __Github Rating__: Sum of all the individual repository scores; overall as well as grouped by Language
+  * __Stackoverflow Rating__: Weighted average of Overall Data; Expertise Data grouped by Expertise (Tags)
+- [ ] __Overall Rating__
+  * Weighted harmonic mean or Github Rating and Stackoverflow Rating

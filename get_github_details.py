@@ -13,6 +13,7 @@ import argparse
 
 import nltk
 import pandas as pd
+import numpy as np
 from github import Github
 from pandas.io.json import json_normalize
 
@@ -44,8 +45,8 @@ def parse_contributions(df_repo, user, repo):
     except (ZeroDivisionError, KeyError):
         user_contrib = 0
     # add contribution and owner details to the repo dataframe
-    df_repo['contribution %'] = user_contrib
-    df_repo['contributions'] = contribs_dict.get(user.login,0)
+    df_repo['user_contrib_pct'] = user_contrib
+    df_repo['contributions'] = sum_contribs
     df_repo['owner'] = repo.owner.login
     print("\t\t{:3.0f}% contribution in '{}' ({})".format(user_contrib, repo.full_name,
                                                           repo.language))
@@ -95,7 +96,7 @@ def parse_user_details(user):
     n_repos = len(repos)
     print('\t{}, {}, {}, {:2d} repos'.format(user.name, user.login, user.email, n_repos))
     if n_repos == 0:
-        continue
+        return pd.DataFrame()
     # for each repo, get contirbution details for the user and parse the info to dataframe
     for repo in repos:
         # json to dataframe using builtin pandas method
@@ -109,15 +110,64 @@ def parse_user_details(user):
         # add it to the list of repo dataframes
         repos_dfs.append(df_repo)
     # combine all the repo dataframes for each of the matching users
-    try:
-        df_all = pd.concat(repos_dfs, axis=0, ignore_index=True)
-    except ValueError:
-        print('No repos found for the matching user.\n')
-        sys.exit(0)
+    df_all = pd.concat(repos_dfs, axis=0, ignore_index=True)
     # convert datetime columns to datetime objects
     df_all = convert_datetime_cols(df_all, date_cols=['updated_at','created_at', 'pushed_at'])
     # return combined dataframe
     return df_all
+
+
+def apply_func_wgt_bias(x, ops):
+    ''' Returns a_f * func( x * a_x + b_x) + b_f
+    '''
+    func = ops.get('func',float)
+    a_x = ops.get('a_x',1)
+    a_f = ops.get('a_f',1)
+    b_x = ops.get('b_x',0)
+    b_f = ops.get('b_f',0)
+    result = a_f * func( x * a_x + b_x) + b_f
+    return result
+
+
+def apply_row_ops(row, row_ops):
+    list_vals = [apply_func_wgt_bias(row[col], ops) for col,ops in row_ops.items()]
+    result = sum(list_vals)
+    return result
+
+
+def get_overall_rating(repo_details, user):
+    '''Get overall rating based on all details
+    '''
+    isowner = repo_details['owner'] == repo_details['user_login']
+    repo_details['isowner'] = isowner.astype(int)
+    # assign a rating for each repo
+    # calculate repo's overall rating as SUM( a_f*func(a_x*x + b_x) + b_f)
+    repo_ops = {
+            'forks_count': {'func':np.abs, 'a_x':2, 'a_f':1, 'b_x':0, 'b_f':0},
+            'stargazers_count': {'func':np.abs, 'a_x':1, 'a_f':1, 'b_x':0, 'b_f':0},
+            'contributions': {'func':np.log, 'a_x':1, 'a_f':1, 'b_x':1, 'b_f':0}
+    }
+    repo_details['repo_rating'] = repo_details.apply(lambda x: apply_row_ops(x,repo_ops), axis=1)
+    owner_frac = 0
+    user_contrib = 0.01*repo_details['user_contrib_pct'] * (1 - owner_frac*repo_details['isowner'])
+    repo_details['user_rating'] = repo_details['repo_rating'] * user_contrib
+    # derive overall rating
+    overall_rating = pd.pivot_table(repo_details, index='language', values='user_rating',
+                                    aggfunc=sum, margins=True, margins_name='OVERALL').to_frame()
+    overall_rating.index.name = 'field'
+    overall_rating = overall_rating.rename(columns={'user_rating':'value'})
+    overall_rating['field_type'] = 'rating_by_language'
+    # add user details
+    details = ['name','login','email']
+    user_details= {idx:getattr(user,idx) for idx in details}
+    user_df = pd.Series(user_details, name='value').to_frame()
+    user_df.index.name = 'field'
+    user_df['field_type'] = 'user_details'
+    overall_rating = user_df.append(overall_rating.sort_values(by='value', ascending=False))
+    overall_rating = overall_rating.set_index(['field_type', overall_rating.index])
+    # all details
+    all_details = repo_details
+    return overall_rating, all_details
 
 
 def get_github_profiles(matching_users, search_string, fields):
@@ -125,6 +175,7 @@ def get_github_profiles(matching_users, search_string, fields):
     '''
     n_matches = len(matching_users)
     search_term = search_string.replace('@','[at]').replace(' ','_')
+    users_dict = {}
     # exit if there are no matches
     if n_matches == 0:
         print("Found 0 users matching '{}'; exiting\n".format(search_string))
@@ -135,15 +186,26 @@ def get_github_profiles(matching_users, search_string, fields):
         # for each user get all the user repos and parse info to dataframe
         for i,user in enumerate(matching_users):
             print("\tGetting details for '{}' ...".format(user.name))
-            tabulated_details = parse_user_details(user)[fields]
-            # write dataframe to excel file
-            file_name = '{}_{}_github.xlsx'.format(search_term, str(i+1))
-            file_path = os.path.join('github_output', file_name)
-            excel_writer = pd.ExcelWriter(file_path)
-            tabulated_details.to_excel(excel_writer, sheet_name='all_details')
-            excel_writer.save()
-            print('\tDetails saved to {}'.format(file_name),'\n')
-    return tabulated_details
+            repo_details = parse_user_details(user)
+            # check if there are no repos
+            if repo_details.shape[0] == 0:
+                print('\tNo repos for {}, nothing to save.'.format(user.login))
+                continue
+            else:
+                # get overall ratings
+                overall_rating, all_details = get_overall_rating(repo_details, user)
+                 # write dataframe to excel file
+                file_name = '{}_{}_github.xlsx'.format(search_term, str(i+1))
+                file_path = os.path.join('github_output', file_name)
+                excel_writer = pd.ExcelWriter(file_path)
+                overall_rating.to_excel(excel_writer, sheet_name='overall_rating')
+                all_details[fields].to_excel(excel_writer, sheet_name='main_details')
+                all_details.to_excel(excel_writer, sheet_name='all_details')
+                excel_writer.save()
+                print('\tDetails saved to {}'.format(file_name),'\n')
+                users_dict[user.login] = {'all_details':all_details,
+                                          'overall_rating':overall_rating}
+    return users_dict
 
 
 def init_github_object(auth_token=None):
@@ -171,12 +233,12 @@ def init_github_object(auth_token=None):
 
 if __name__ == '__main__':
     # get search_string and auth_token from command line arguments
-    usage = "\npython3 get_github_details_pygithub.py"
+    usage = "\npython3 get_github_details.py"
     description = "Script to get job candidate's github profile"
     parser = argparse.ArgumentParser(usage=usage, description=description)
-    parser.add_argument("search_string", type=str, nargs=1,
+    parser.add_argument("-s", dest="search_string", type=str,
                         help="substring to search for in users' name/email/login fields")
-    parser.add_argument("auth_token", type=str, nargs="?",
+    parser.add_argument("-a", dest="auth_token", type=str, nargs="?",
                         help="github authentication token (to avoid rate limitation)")
     args = parser.parse_args()
     search_string = args.search_string
@@ -188,7 +250,7 @@ if __name__ == '__main__':
     matching_users = list(search_result)
     # fields to output to excel file
     fields = ['user_name', 'user_login', 'user_email', 'full_name', 'owner',
-              'html_url', 'language', 'updated_at', 'forks_count', 'stargazers_count',
-              'contribution %', 'contributions','readme_keywords']
+              'html_url', 'language', 'updated_at', 'fork', 'forks_count', 'stargazers_count',
+              'contributions', 'user_contrib_pct','readme_keywords','repo_rating','user_rating']
     # get all details for mathing users and save specified fields to excel sheet
-    tabulated_details = get_github_profiles(matching_users, search_string, fields)
+    users_dict = get_github_profiles(matching_users, search_string, fields)

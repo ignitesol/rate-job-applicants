@@ -97,14 +97,14 @@ def parse_user_details(user):
 
 
 def apply_func_wgt_bias(x, ops):
-    ''' Returns wgt_func * func( x * wgt_x + bias_x) + bias_func
+    ''' Returns a_f * func( x * a_x + b_x) + b_f
     '''
     func = ops.get('func',float)
-    wgt_x = ops.get('wgt_x',1)
-    wgt_func = ops.get('wgt_func',1)
-    bias_x = ops.get('bias_x',0)
-    bias_func = ops.get('bias_func',0)
-    result = wgt_func * func( x * wgt_x + bias_x) + bias_func
+    a_x = ops.get('a_x',1)
+    a_f = ops.get('a_f',1)
+    b_x = ops.get('b_x',0)
+    b_f = ops.get('b_f',0)
+    result = a_f * func( x * a_x + b_x) + b_f
     return result
 
 
@@ -120,14 +120,14 @@ def overall_rating(user_df, tags_df):
     # append geneal ratings
     ratings_df.loc[general_rating_fields, 'field_type'] = 'general_ratings'
     ratings_df['value'] = ratings_df['value'].fillna(0)
-    # calculate overall rating as SUM( wgt_func*func(wgt_x*x + bias_x) + bias_func)
+    # calculate overall rating as SUM( a_f*func(a_x*x + b_x) + b_f)
     ops = {
-        'accept_rate': {'func':np.exp, 'wgt_x':0.05, 'wgt_func':1, 'bias_x':0, 'bias_func':-1},
-        'badge_counts.bronze': {'func':np.abs, 'wgt_x':1, 'wgt_func':1, 'bias_x':0, 'bias_func':0},
-        'badge_counts.silver': {'func':np.abs, 'wgt_x':1, 'wgt_func':1, 'bias_x':0, 'bias_func':0},
-        'badge_counts.gold': {'func':np.abs, 'wgt_x':1, 'wgt_func':1, 'bias_x':0, 'bias_func':0},
-        'reputation': {'func':np.log, 'wgt_x':1, 'wgt_func':100, 'bias_x':0, 'bias_func':1}
-        }
+        'accept_rate': {'func':np.exp, 'a_x':0.05, 'a_f':1, 'b_x':0, 'b_f':-1},
+        'badge_counts.bronze': {'func':np.abs, 'a_x':1, 'a_f':1, 'b_x':0, 'b_f':0},
+        'badge_counts.silver': {'func':np.abs, 'a_x':1, 'a_f':1, 'b_x':0, 'b_f':0},
+        'badge_counts.gold': {'func':np.abs, 'a_x':1, 'a_f':1, 'b_x':0, 'b_f':0},
+        'reputation': {'func':np.log, 'a_x':1, 'a_f':100, 'b_x':0, 'b_f':1}
+    }
     ratings = [apply_func_wgt_bias(ratings_df.loc[key,'value'], opr) for key,opr in ops.items()]
     overall_rating = int(sum(ratings))
     # append overall rating
