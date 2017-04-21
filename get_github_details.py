@@ -231,6 +231,17 @@ def init_github_object(auth_token=None):
     return g
 
 
+def find_matching_users(search_string, auth_token):
+    '''Get users matching the search_string
+    '''
+    # init github object
+    g = init_github_object(auth_token=auth_token)
+    # find all users matchin the search string
+    search_result = g.search_users(search_string, sort='repositories' ,order='desc')
+    matching_users = list(search_result)
+    return matching_users
+
+
 if __name__ == '__main__':
     # get search_string and auth_token from command line arguments
     usage = "\npython3 get_github_details.py"
@@ -243,11 +254,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
     search_string = args.search_string
     auth_token = args.auth_token
-    # initialize github object
-    g = init_github_object(auth_token=auth_token)
-    # find all users matchin the search string
-    search_result = g.search_users(search_string, sort='repositories' ,order='desc')
-    matching_users = list(search_result)
+    # find matching users
+    matching_users = find_matching_users(search_string, auth_token)
     # fields to output to excel file
     fields = ['user_name', 'user_login', 'user_email', 'full_name', 'owner',
               'html_url', 'language', 'updated_at', 'fork', 'forks_count', 'stargazers_count',

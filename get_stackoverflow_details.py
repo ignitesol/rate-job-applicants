@@ -68,8 +68,14 @@ def get_top_answers_tags(user):
         df_all = pd.concat(tags_dfs, axis=0)[cols]
     except ValueError:
         df_all = pd.DataFrame(columns=cols)
+    # row totals
     df_all['value'] = df_all.sum(axis=1)
-    return df_all.sort_values(by = 'value', ascending=False)
+    # column totals
+    sum_row = df_all.sum(axis=0)
+    sum_row.ix['tag_name'] = 'OVERALL'
+    df_tags = df_all.append(sum_row, ignore_index=True)
+    # return df sorted by row totals
+    return df_tags.sort_values(by = 'value', ascending=False)
 
 
 def parse_user_details(user):
@@ -147,6 +153,7 @@ def get_stackoverflow_profiles(matching_users, search_kw):
     '''
     n_matches = len(matching_users)
     search_term = list(search_kw.values())[0]
+    users_dict = {}
     # exit if there are no matches
     if n_matches == 0:
         print("Found 0 users matching '{}'; exiting\n".format(search_term))
@@ -169,8 +176,20 @@ def get_stackoverflow_profiles(matching_users, search_kw):
             tags_df.to_excel(excel_writer, sheet_name='top_answers_tags')
             excel_writer.save()
             print('\tDetails saved to {}'.format(file_name),'\n')
-    return user_df, tags_df, ratings_df
+            users_dict[user.display_name] = {
+                'user_df': user_df,
+                'tags_df': tags_df,
+                'ratings_df': ratings_df
+            }
+    return users_dict
 
+
+def find_matching_users(search_kw, auth_key):
+    # initialize SO object
+    so = init_stackoverflow_object(auth_key = auth_key)
+    # find all users matching the search criteria
+    matching_users = so.users(**search_kw)
+    return matching_users
 
 if __name__ == '__main__':
     # get search_string, user_id and auth_key from command line arguments
@@ -188,8 +207,6 @@ if __name__ == '__main__':
     user_id = args.user_id
     search_string = args.search_string
     auth_key = args.auth_key
-    # initialize SO object
-    so = init_stackoverflow_object(auth_key = auth_key)
     # build search criterial kw
     if user_id is not None:
         search_kw = {'ids':user_id}
@@ -197,7 +214,7 @@ if __name__ == '__main__':
         search_kw = {'inname':search_string}
     else:
         parser.error('Requires either USER_ID or SEARCH_STRING')
-    # find all users matching the search criteria
-    matching_users = so.users(**search_kw)
+    # get matching users
+    matching_users = find_matching_users(search_kw, auth_key)
     # get all details for matching users and save as tabular form to excel sheet
-    user_df, tags_df, ratings_df = get_stackoverflow_profiles(matching_users, search_kw)
+    users_dict = get_stackoverflow_profiles(matching_users, search_kw)
