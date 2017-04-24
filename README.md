@@ -22,12 +22,12 @@
      * Expertise(tags) Data: For each tag (skill/expertise) : Answer_count, Answer_score, Question_count, Question_score
 - [X] __Aggregate metric(s) for rating the candidate.__
   * __Github Rating__:
-     * __Repository_Rating__: `count(Stars) + 2*count(Forks) + log(All_Contributions + 1)` for each Repository
-     * __User_Repository_Rating__: `User_Contributions_% * (User is Owner ? 1 : 1.25) * Repository_Rating` for each Repository
+     * __Repository_Ratings__: `count(Stars) + 2*count(Forks) + log(All_Contributions + 1)` (list)
+     * __User_Repo_Ratings__: `User_Contributions_% * (User is Owner ? 1 : 1.25) * Repository_Rating` (list)
      * __Overall_User_Rating__: `sum(User_Repository_Ratings)` for all Repositories
-     * __User_Expertise_Rating__: `User_Repository_Ratings GROUPBY Language` for all Repositories
+     * __User_Expertise_Ratings__: `User_Repository_Ratings GROUPBY Language` for all Repositories
   * __Stackoverflow Rating__:
      * __Overall_User_Rating__: `10*exp(Acceptance_Rate/100)-10 + sum(Bronze_Badges + 2*Silver_Badges + 3*Gold_Badges) + 100*log(Reputation + 1)`
-     * __User_Expertise_Rating__: `sum(Answer_Count + Answer_Score + Question_Count + Question_Score) GROUPBY Tag`
+     * __User_Expertise_Ratings__: `sum(Answer_Count + Answer_Score + Question_Count + Question_Score) GROUPBY Tag`
 - [ ] __Overall Rating__
   * Weighted harmonic mean ? of Github Ratings and Stackoverflow Ratings: Overall and By Expertise
