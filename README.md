@@ -1,25 +1,25 @@
 ### Purpose
-* Search Github and Stackexchange for information about a job candidate.
-* Retrive all relevant data for the candidate from Github and Stackexchange.
-* Identify and extract data pertinent for rating the candidate.
-* Use a suitable methodology for rating the candidate using this data.
+* Search Github and Stackexchange for information about a job applicant.
+* Retrive all relevant data for the applicant from Github and Stackexchange.
+* Identify and extract data pertinent for rating the applicant.
+* Use a suitable methodology for rating the applicant using this data.
 
 ### Implemented Functionality
-- [X] __Search Github for a specified name/username/email and retrive users' data.__
+- [X] __Search Github for a specified name/username/email and retrive matching users' data.__
   * Auth: Github authentication token, either as command-line input or as AUTH_TOKEN in github_auth.py. (Authentication is necessary for bypassing rate limit of 60 requests/hour)
   * Usage: `bash$ python3 get_github_details.py -s "search string" [-a "authentication_token"]`
   * Output: spreadsheet with relevant github (selective) details named "search_string_github.xlsx"
-- [X] __Search Stackexchange for name/username/email and retrive users' data.__
+- [X] __Search Stackoverflow for a specified user_id/username and retrive matching users' data.__
   * Auth: Stackapps authentication key, either as command-line input or as AUTH_KEY in stackoverflow_auth.py. (Authentication is necessary for bypassing rate limit of 300 requests/day)
   * Usage: `bash$ python3 get_stackoverflow_details.py -i "user_id" | -s "search string" [-a "authentication_key"]`
   * Output: spreadsheet with relevant stackoverflow (selective) details named "search_string_stackoverflow.xlsx"
 - [X] __Relevant data from Github and Stackoverflow.__
   * __Github Data__:
+     * List of all user's repositories
      * Data from each repository: All_Contributions, User_Contributions_%, Stars_count, Forks_count, Language, Owner_type (User or Not-User)
-     * Repository Score: Weighted average of all quantitative fields, grouped by Owner_type, grouped by language.
   * __Stackoverflow Data__:
-     * Overall Data: Reputation, Badge_Count (Bronze, Silver, Gold), Answer_acceptance_rate
-     * Expertise(tags) Data: For each tag (skill/expertise) : Answer_count, Answer_score, Question_count, Question_score
+     * Overall User Data: Reputation, Badge_Count (Bronze, Silver, Gold), Answer_acceptance_rate
+     * Expertise (tags) Data: For each tag (language/expertise) : Answer_count, Answer_score, Question_count, Question_score
 - [X] __Aggregate metric(s) for rating the candidate.__
   * __Github Rating__:
      * __Repository_Ratings__: `count(Stars) + 2*count(Forks) + log(All_Contributions + 1)` (list)
