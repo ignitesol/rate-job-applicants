@@ -6,12 +6,12 @@
 
 ### Implemented Functionality
 - [X] __Search Github for a specified name/username/email and retrive users' data.__
-  * Auth: Github authentication token either as command-line input or as AUTH_TOKEN in github_auth.py. (Authentication is necessary for bypassing rate limit of 60 requests/hour)
-  * Usage: `$ python3 get_github_details.py -s "search string" [-a "authentication_token"]`
+  * Auth: Github authentication token, either as command-line input or as AUTH_TOKEN in github_auth.py. (Authentication is necessary for bypassing rate limit of 60 requests/hour)
+  * Usage: `bash$ python3 get_github_details.py -s "search string" [-a "authentication_token"]`
   * Output: spreadsheet with relevant github (selective) details named "search_string_github.xlsx"
 - [X] __Search Stackexchange for name/username/email and retrive users' data.__
-  * Auth: Authentication token either as command-line input or as AUTH_KEY in stackoverflow_auth.py. (Authentication is necessary for bypassing rate limit of 300 requests/day)
-  * Usage: `$ python3 get_stackoverflow_details.py [-i "user_id" | -s "search string"] [-a "authentication_token"]`
+  * Auth: Stackapps authentication key, either as command-line input or as AUTH_KEY in stackoverflow_auth.py. (Authentication is necessary for bypassing rate limit of 300 requests/day)
+  * Usage: `bash$ python3 get_stackoverflow_details.py -i "user_id" | -s "search string" [-a "authentication_key"]`
   * Output: spreadsheet with relevant stackoverflow (selective) details named "search_string_stackoverflow.xlsx"
 - [X] __Relevant data from Github and Stackoverflow.__
   * __Github Data__:
