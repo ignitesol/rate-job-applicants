@@ -15,7 +15,7 @@ import get_github_details as ghd
 import get_stackoverflow_details as sod
 
 
-MASTER_FILE = "Copy of Applicant Master Data 2017.xlsx"
+MASTER_FILE = "master_data/Applicant Master Data 2017.xlsx"
 
 # read master appliant information
 try:
