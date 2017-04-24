@@ -15,13 +15,19 @@
   * Output: spreadsheet with relevant stackoverflow (selective) details named "search_string_stackoverflow.xlsx"
 - [X] __Relevant data from Github and Stackoverflow.__
   * __Github Data__:
-     * Data from each repository: User_contributions, User_contributions_%, Stars_count, Forks_count, Language, Owner_type (User or Not-User)
+     * Data from each repository: All_Contributions, User_Contributions_%, Stars_count, Forks_count, Language, Owner_type (User or Not-User)
      * Repository Score: Weighted average of all quantitative fields, grouped by Owner_type, grouped by language.
   * __Stackoverflow Data__:
      * Overall Data: Reputation, Badge_Count (Bronze, Silver, Gold), Answer_acceptance_rate
      * Expertise(tags) Data: For each tag (skill/expertise) : Answer_count, Answer_score, Question_count, Question_score
 - [X] __Aggregate metric(s) for rating the candidate.__
-  * __Github Rating__: Sum of all the individual repository scores; overall as well as grouped by Language
-  * __Stackoverflow Rating__: Weighted average of Overall Data; Expertise Data grouped by Expertise (Tags)
+  * __Github Rating__:
+     * __Repository Rating__: `Repository_Rating = count(Stars) + 2*count(Forks) + log(All_Contributions + 1)` for each Repository
+     * __User Repository Rating__: `User_Repo_Rating' = User_Contributions_% * (User is Owner ? 1 : 1.25) * Repository_Rating` for each Repository
+     * __Overall User Rating__: `Overall_User_Rating = sum(User_Repo_Ratings)` for all Repositories
+     * __User Rating by Expertise__: `User_Expertise_Rating = User_Repo_Ratings GROUPBY Language` for all Repositories 
+  * __Stackoverflow Rating__:
+     * __Overall User Rating__: `Overall_Rating = 10*exp(Acceptance_Rate/100)-10 + sum(Bronze_Badges + 2*Silver_Badges + 3*Gold_Badges) + 100*log(Reputation + 1)`
+     * __User Rating by Expertise__: `User_Expertise_Rating = sum(Answer_Count + Answer_Score + Question_Count + Question_Score) GROUPBY Tag`
 - [ ] __Overall Rating__
-  * Weighted harmonic mean or Github Rating and Stackoverflow Rating
+  * Weighted harmonic mean ? of Github Ratings and Stackoverflow Ratings: Overall and By Expertise

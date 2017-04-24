@@ -118,7 +118,7 @@ def parse_user_details(user):
 
 
 def apply_func_wgt_bias(x, ops):
-    ''' Returns a_f * func( x * a_x + b_x) + b_f
+    ''' Returns a_f * func( a_x * x + b_x) + b_f
     '''
     func = ops.get('func',float)
     a_x = ops.get('a_x',1)
@@ -148,8 +148,8 @@ def get_overall_rating(repo_details, user):
             'contributions': {'func':np.log, 'a_x':1, 'a_f':1, 'b_x':1, 'b_f':0}
     }
     repo_details['repo_rating'] = repo_details.apply(lambda x: apply_row_ops(x,repo_ops), axis=1)
-    owner_frac = 0
-    user_contrib = 0.01*repo_details['user_contrib_pct'] * (1 - owner_frac*repo_details['isowner'])
+    owner_frac = 0.25
+    user_contrib = 0.01*repo_details['user_contrib_pct'] * (1.25 - owner_frac*repo_details['isowner'])
     repo_details['user_rating'] = repo_details['repo_rating'] * user_contrib
     # derive overall rating
     overall_rating = pd.pivot_table(repo_details, index='language', values='user_rating',
@@ -160,10 +160,11 @@ def get_overall_rating(repo_details, user):
     # add user details
     details = ['name','login','email']
     user_details= {idx:getattr(user,idx) for idx in details}
-    user_df = pd.Series(user_details, name='value').to_frame()
-    user_df.index.name = 'field'
-    user_df['field_type'] = 'user_details'
-    overall_rating = user_df.append(overall_rating.sort_values(by='value', ascending=False))
+    user_details['link'] = "https://github.com/" + user.login
+    user_ds = pd.Series(user_details, name='value').to_frame()
+    user_ds.index.name = 'field'
+    user_ds['field_type'] = 'user_details'
+    overall_rating = user_ds.append(overall_rating.sort_values(by='value', ascending=False))
     overall_rating = overall_rating.set_index(['field_type', overall_rating.index])
     # all details
     all_details = repo_details
@@ -227,7 +228,7 @@ def init_github_object(auth_token=None):
             print("Store github AUTH_TOKEN in github_auth.py to avoid rate limitation")
             auth_token == None
         # initialize github object
-    g = Github(login_or_token=auth_token, timeout=60)
+    g = Github(login_or_token=auth_token)
     return g
 
 

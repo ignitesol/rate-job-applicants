@@ -103,7 +103,7 @@ def parse_user_details(user):
 
 
 def apply_func_wgt_bias(x, ops):
-    ''' Returns a_f * func( x * a_x + b_x) + b_f
+    ''' Returns a_f * func( a_x * x + b_x) + b_f
     '''
     func = ops.get('func',float)
     a_x = ops.get('a_x',1)
@@ -117,7 +117,7 @@ def apply_func_wgt_bias(x, ops):
 def overall_rating(user_df, tags_df):
     '''Get a tabulated form for user details, general ratings, overall rating, top tag ratings
     '''
-    user_id_fields = ['display_name', 'user_id', 'age', 'location']
+    user_id_fields = ['display_name', 'user_id', 'age', 'location', 'link']
     general_rating_fields = ['accept_rate', 'reputation', 'badge_counts.bronze',
                              'badge_counts.silver', 'badge_counts.gold']
     ratings_df = user_df.loc[user_id_fields + general_rating_fields].copy()
@@ -128,11 +128,11 @@ def overall_rating(user_df, tags_df):
     ratings_df['value'] = ratings_df['value'].fillna(0)
     # calculate overall rating as SUM( a_f*func(a_x*x + b_x) + b_f)
     ops = {
-        'accept_rate': {'func':np.exp, 'a_x':0.05, 'a_f':1, 'b_x':0, 'b_f':-1},
+        'accept_rate': {'func':np.exp, 'a_x':0.01, 'a_f':10, 'b_x':0, 'b_f':-10},
         'badge_counts.bronze': {'func':np.abs, 'a_x':1, 'a_f':1, 'b_x':0, 'b_f':0},
         'badge_counts.silver': {'func':np.abs, 'a_x':1, 'a_f':1, 'b_x':0, 'b_f':0},
         'badge_counts.gold': {'func':np.abs, 'a_x':1, 'a_f':1, 'b_x':0, 'b_f':0},
-        'reputation': {'func':np.log, 'a_x':1, 'a_f':100, 'b_x':0, 'b_f':1}
+        'reputation': {'func':np.log, 'a_x':1, 'a_f':100, 'b_x':1, 'b_f':0}
     }
     ratings = [apply_func_wgt_bias(ratings_df.loc[key,'value'], opr) for key,opr in ops.items()]
     overall_rating = int(sum(ratings))
@@ -140,7 +140,7 @@ def overall_rating(user_df, tags_df):
     ratings_df.loc['overall_rating', 'value'] = overall_rating
     ratings_df.loc['overall_rating', 'field_type'] = 'overall_rating'
     # append tags
-    top_tags_df = tags_df['value'].head(20).to_frame()
+    top_tags_df = tags_df['value'].head(10).to_frame()
     top_tags_df['field_type'] = 'expertise_ratings'
     ratings_df = ratings_df.append(top_tags_df)
     ratings_df.index.name = 'field'
@@ -185,11 +185,13 @@ def get_stackoverflow_profiles(matching_users, search_kw):
 
 
 def find_matching_users(search_kw, auth_key):
-    # initialize SO object
+    ''' initialize SO object
+    '''
     so = init_stackoverflow_object(auth_key = auth_key)
     # find all users matching the search criteria
     matching_users = so.users(**search_kw)
     return matching_users
+
 
 if __name__ == '__main__':
     # get search_string, user_id and auth_key from command line arguments
