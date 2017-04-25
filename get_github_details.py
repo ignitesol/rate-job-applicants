@@ -156,14 +156,15 @@ def get_overall_rating(repo_details, user):
                                     aggfunc=sum, margins=True, margins_name='OVERALL').to_frame()
     overall_rating.index.name = 'field'
     overall_rating = overall_rating.rename(columns={'user_rating':'value'})
-    overall_rating['field_type'] = 'rating_by_language'
+    overall_rating['field_type'] = 'github_expertise_ratings'
+    overall_rating.loc['OVERALL', 'field_type'] = 'github_overall_rating'
     # add user details
     details = ['name','login','email']
     user_details= {idx:getattr(user,idx) for idx in details}
     user_details['link'] = "https://github.com/" + user.login
     user_ds = pd.Series(user_details, name='value').to_frame()
     user_ds.index.name = 'field'
-    user_ds['field_type'] = 'user_details'
+    user_ds['field_type'] = 'github_id_details'
     overall_rating = user_ds.append(overall_rating.sort_values(by='value', ascending=False))
     overall_rating = overall_rating.set_index(['field_type', overall_rating.index])
     # all details
@@ -171,19 +172,23 @@ def get_overall_rating(repo_details, user):
     return overall_rating, all_details
 
 
-def get_github_profiles(matching_users, search_string, fields):
+def get_github_profiles(matching_users, search_string):
     '''Get all details for matching users and save as excel file
     '''
+    # fields to output to excel file
+    fields = ['user_name', 'user_login', 'user_email', 'full_name', 'owner',
+              'html_url', 'language', 'updated_at', 'fork', 'forks_count', 'stargazers_count',
+              'contributions', 'user_contrib_pct','readme_keywords','repo_rating','user_rating']
     n_matches = len(matching_users)
     search_term = search_string.replace('@','[at]').replace(' ','_')
     users_dict = {}
     # exit if there are no matches
     if n_matches == 0:
-        print("Found 0 users matching '{}'; exiting\n".format(search_string))
+        print("Found 0 Github users matching '{}'".format(search_string))
         sys.exit(0)
     # get details of all the matching users, parse the details to dataframe, write it to excel file
     else:
-        print("Found {} users matching '{}'.\nFetching details ...".format(n_matches,search_string))
+        print("Found {} Github users matching '{}'.\nFetching ...".format(n_matches,search_string))
         # for each user get all the user repos and parse info to dataframe
         for i,user in enumerate(matching_users):
             print("\tGetting details for '{}' ...".format(user.name))
@@ -203,9 +208,12 @@ def get_github_profiles(matching_users, search_string, fields):
                 all_details[fields].to_excel(excel_writer, sheet_name='main_details')
                 all_details.to_excel(excel_writer, sheet_name='all_details')
                 excel_writer.save()
-                print('\tDetails saved to {}'.format(file_name),'\n')
-                users_dict[user.login] = {'all_details':all_details,
-                                          'overall_rating':overall_rating}
+                print('\tDetails saved to {}'.format(file_name))
+                users_dict[user.email] = {
+                        'login': user.login,
+                        'all_details':all_details,
+                        'overall_rating':overall_rating
+                }
     return users_dict
 
 
@@ -218,7 +226,7 @@ def init_github_object(auth_token=None):
         # check if auth token file exists, get token if it does
         try:
             import github_auth
-            print("\nReading auth_token from github_auth.py")
+            print("\nReading auth_token from github_auth.py\n")
             auth_token = github_auth.AUTH_TOKEN
         # proceed without auth if there is no auth token file
         except ImportError:
@@ -228,15 +236,13 @@ def init_github_object(auth_token=None):
             print("Store github AUTH_TOKEN in github_auth.py to avoid rate limitation")
             auth_token == None
         # initialize github object
-    g = Github(login_or_token=auth_token)
+    g = Github(login_or_token=auth_token, timeout=60)
     return g
 
 
-def find_matching_users(search_string, auth_token):
+def find_matching_users(g, search_string, auth_token=None):
     '''Get users matching the search_string
     '''
-    # init github object
-    g = init_github_object(auth_token=auth_token)
     # find all users matchin the search string
     search_result = g.search_users(search_string, sort='repositories' ,order='desc')
     matching_users = list(search_result)
@@ -255,11 +261,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
     search_string = args.search_string
     auth_token = args.auth_token
+    # init github object
+    g = init_github_object(auth_token=auth_token)
     # find matching users
-    matching_users = find_matching_users(search_string, auth_token)
-    # fields to output to excel file
-    fields = ['user_name', 'user_login', 'user_email', 'full_name', 'owner',
-              'html_url', 'language', 'updated_at', 'fork', 'forks_count', 'stargazers_count',
-              'contributions', 'user_contrib_pct','readme_keywords','repo_rating','user_rating']
+    matching_users = find_matching_users(g, search_string, auth_token)
     # get all details for mathing users and save specified fields to excel sheet
-    users_dict = get_github_profiles(matching_users, search_string, fields)
+    users_dicts = get_github_profiles(matching_users, search_string)

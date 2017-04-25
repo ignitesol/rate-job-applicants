@@ -31,7 +31,7 @@ def init_stackoverflow_object(auth_key=None):
         # check if auth token file exists, get token if it does
         try:
             import stackoverflow_auth
-            print("\nReading auth_token from stackoverflow_auth.py")
+            print("\nReading auth_token from stackoverflow_auth.py\n")
             auth_key = stackoverflow_auth.AUTH_KEY
         # proceed without auth if there is no auth token file
         except ImportError:
@@ -70,10 +70,13 @@ def get_top_answers_tags(user):
         df_all = pd.DataFrame(columns=cols)
     # row totals
     df_all['value'] = df_all.sum(axis=1)
+    df_tags = df_all
     # column totals
     sum_row = df_all.sum(axis=0)
     sum_row.ix['tag_name'] = 'OVERALL'
     df_tags = df_all.append(sum_row, ignore_index=True)
+    # ignore totals
+    df_tags = df_all
     # return df sorted by row totals
     return df_tags.sort_values(by = 'value', ascending=False)
 
@@ -92,7 +95,10 @@ def parse_user_details(user):
     # convert datetime columns to datetime objects
     date_cols=['creation_date', 'last_access_date', 'last_modified_date']
     for col in date_cols:
-        user_df[col] = pd.to_datetime(user_df[col], unit='s', infer_datetime_format=True)
+        try:
+            user_df[col] = pd.to_datetime(user_df[col], unit='s', infer_datetime_format=True)
+        except KeyError:
+            continue
     # transpose user_df
     user_df = user_df.T
     user_df.index.name = 'field'
@@ -122,9 +128,9 @@ def overall_rating(user_df, tags_df):
                              'badge_counts.silver', 'badge_counts.gold']
     ratings_df = user_df.loc[user_id_fields + general_rating_fields].copy()
     # append user details
-    ratings_df.loc[user_id_fields,'field_type'] = 'user_details'
+    ratings_df.loc[user_id_fields,'field_type'] = 'stackoverflow_id_details'
     # append geneal ratings
-    ratings_df.loc[general_rating_fields, 'field_type'] = 'general_ratings'
+    ratings_df.loc[general_rating_fields, 'field_type'] = 'stackoverflow_general_ratings'
     ratings_df['value'] = ratings_df['value'].fillna(0)
     # calculate overall rating as SUM( a_f*func(a_x*x + b_x) + b_f)
     ops = {
@@ -137,11 +143,11 @@ def overall_rating(user_df, tags_df):
     ratings = [apply_func_wgt_bias(ratings_df.loc[key,'value'], opr) for key,opr in ops.items()]
     overall_rating = int(sum(ratings))
     # append overall rating
-    ratings_df.loc['overall_rating', 'value'] = overall_rating
-    ratings_df.loc['overall_rating', 'field_type'] = 'overall_rating'
+    ratings_df.loc['stackoverflow_overall_rating', 'value'] = overall_rating
+    ratings_df.loc['stackoverflow_overall_rating', 'field_type'] = 'stackoverflow_overall_rating'
     # append tags
-    top_tags_df = tags_df['value'].head(10).to_frame()
-    top_tags_df['field_type'] = 'expertise_ratings'
+    top_tags_df = tags_df['value'].head(20).to_frame()
+    top_tags_df['field_type'] = 'stackoverflow_expertise_ratings'
     ratings_df = ratings_df.append(top_tags_df)
     ratings_df.index.name = 'field'
     ratings_df = ratings_df.set_index(['field_type',ratings_df.index])
@@ -156,11 +162,11 @@ def get_stackoverflow_profiles(matching_users, search_kw):
     users_dict = {}
     # exit if there are no matches
     if n_matches == 0:
-        print("Found 0 users matching '{}'; exiting\n".format(search_term))
+        print("Found 0 Stackoverflow users matching '{}'".format(search_term))
         sys.exit(0)
     # get details of all the matching users, parse the details to dataframe, write it to excel file
     else:
-        print("Found {} user(s) matching '{}'.\nFetching details ...".format(n_matches,search_term))
+        print("Found {} Stackoverflow user(s) matching '{}'.\nFetching ...".format(n_matches,search_term))
         for i,user in enumerate(matching_users):
             # get all repos for the user and output to a dataframe
             print("\tGetting user_df and tags_df for '{}' ...".format(user.display_name))
@@ -175,7 +181,7 @@ def get_stackoverflow_profiles(matching_users, search_kw):
             user_df.to_excel(excel_writer, sheet_name='user_details', header=False)
             tags_df.to_excel(excel_writer, sheet_name='top_answers_tags')
             excel_writer.save()
-            print('\tDetails saved to {}'.format(file_name),'\n')
+            print('\tDetails saved to {}'.format(file_name))
             users_dict[user.display_name] = {
                 'user_df': user_df,
                 'tags_df': tags_df,
@@ -184,10 +190,9 @@ def get_stackoverflow_profiles(matching_users, search_kw):
     return users_dict
 
 
-def find_matching_users(search_kw, auth_key):
-    ''' initialize SO object
+def find_matching_users(so, search_kw, auth_key=None):
+    ''' find matching users
     '''
-    so = init_stackoverflow_object(auth_key = auth_key)
     # find all users matching the search criteria
     matching_users = so.users(**search_kw)
     return matching_users
@@ -216,7 +221,9 @@ if __name__ == '__main__':
         search_kw = {'inname':search_string}
     else:
         parser.error('Requires either USER_ID or SEARCH_STRING')
+    # init stackoverflow object
+    so = init_stackoverflow_object(auth_key = auth_key)
     # get matching users
-    matching_users = find_matching_users(search_kw, auth_key)
+    matching_users = find_matching_users(so, search_kw, auth_key)
     # get all details for matching users and save as tabular form to excel sheet
     users_dict = get_stackoverflow_profiles(matching_users, search_kw)
