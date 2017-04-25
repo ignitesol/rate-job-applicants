@@ -114,6 +114,7 @@ def parse_user_details(user):
     # convert datetime columns to datetime objects
     df_all = convert_datetime_cols(df_all, date_cols=['updated_at','created_at', 'pushed_at'])
     # return combined dataframe
+    df_all['language'] = df_all['language'].str.lower()
     return df_all
 
 
@@ -143,9 +144,9 @@ def get_overall_rating(repo_details, user):
     # assign a rating for each repo
     # calculate repo's overall rating as SUM( a_f*func(a_x*x + b_x) + b_f)
     repo_ops = {
-            'forks_count': {'func':np.abs, 'a_x':2, 'a_f':1, 'b_x':0, 'b_f':0},
+            'forks_count': {'func':np.abs, 'a_x':1, 'a_f':2, 'b_x':0, 'b_f':0},
             'stargazers_count': {'func':np.abs, 'a_x':1, 'a_f':1, 'b_x':0, 'b_f':0},
-            'contributions': {'func':np.log, 'a_x':1, 'a_f':1, 'b_x':1, 'b_f':0}
+            'contributions': {'func':np.log10, 'a_x':1, 'a_f':1, 'b_x':1, 'b_f':0}
     }
     repo_details['repo_rating'] = repo_details.apply(lambda x: apply_row_ops(x,repo_ops), axis=1)
     owner_frac = 0.25
@@ -157,7 +158,7 @@ def get_overall_rating(repo_details, user):
     overall_rating.index.name = 'field'
     overall_rating = overall_rating.rename(columns={'user_rating':'value'})
     overall_rating['field_type'] = 'github_expertise_ratings'
-    overall_rating.loc['OVERALL', 'field_type'] = 'github_overall_rating'
+    overall_rating.loc['github_overall_rating', 'field_type'] = 'github_overall_rating'
     # add user details
     details = ['name','login','email']
     user_details= {idx:getattr(user,idx) for idx in details}

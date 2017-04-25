@@ -71,12 +71,10 @@ def get_top_answers_tags(user):
     # row totals
     df_all['value'] = df_all.sum(axis=1)
     df_tags = df_all
-    # column totals
-    sum_row = df_all.sum(axis=0)
-    sum_row.ix['tag_name'] = 'OVERALL'
-    df_tags = df_all.append(sum_row, ignore_index=True)
-    # ignore totals
-    df_tags = df_all
+#    # column totals
+#    sum_row = df_all.sum(axis=0)
+#    sum_row.ix['tag_name'] = 'OVERALL'
+#    df_tags = df_all.append(sum_row, ignore_index=True)
     # return df sorted by row totals
     return df_tags.sort_values(by = 'value', ascending=False)
 
@@ -134,19 +132,19 @@ def overall_rating(user_df, tags_df):
     ratings_df['value'] = ratings_df['value'].fillna(0)
     # calculate overall rating as SUM( a_f*func(a_x*x + b_x) + b_f)
     ops = {
-        'accept_rate': {'func':np.exp, 'a_x':0.01, 'a_f':10, 'b_x':0, 'b_f':-10},
+        'accept_rate': {'func':np.abs, 'a_x':1, 'a_f':0.1, 'b_x':0, 'b_f':0},
         'badge_counts.bronze': {'func':np.abs, 'a_x':1, 'a_f':1, 'b_x':0, 'b_f':0},
-        'badge_counts.silver': {'func':np.abs, 'a_x':1, 'a_f':1, 'b_x':0, 'b_f':0},
-        'badge_counts.gold': {'func':np.abs, 'a_x':1, 'a_f':1, 'b_x':0, 'b_f':0},
-        'reputation': {'func':np.log, 'a_x':1, 'a_f':100, 'b_x':1, 'b_f':0}
+        'badge_counts.silver': {'func':np.abs, 'a_x':1, 'a_f':10, 'b_x':0, 'b_f':0},
+        'badge_counts.gold': {'func':np.abs, 'a_x':1, 'a_f':100, 'b_x':0, 'b_f':0},
+        'reputation': {'func':np.log10, 'a_x':1, 'a_f':100, 'b_x':1, 'b_f':0}
     }
-    ratings = [apply_func_wgt_bias(ratings_df.loc[key,'value'], opr) for key,opr in ops.items()]
-    overall_rating = int(sum(ratings))
+    gen_ratings = [apply_func_wgt_bias(ratings_df.loc[key,'value'], opr) for key,opr in ops.items()]
+    overall_rating = 1*sum(gen_ratings) + 1*tags_df['value'].sum()
     # append overall rating
     ratings_df.loc['stackoverflow_overall_rating', 'value'] = overall_rating
     ratings_df.loc['stackoverflow_overall_rating', 'field_type'] = 'stackoverflow_overall_rating'
     # append tags
-    top_tags_df = tags_df['value'].head(20).to_frame()
+    top_tags_df = tags_df['value'].to_frame()
     top_tags_df['field_type'] = 'stackoverflow_expertise_ratings'
     ratings_df = ratings_df.append(top_tags_df)
     ratings_df.index.name = 'field'
@@ -158,7 +156,7 @@ def get_stackoverflow_profiles(matching_users, search_kw):
     '''Get all details for matching users and save as excel file
     '''
     n_matches = len(matching_users)
-    search_term = list(search_kw.values())[0]
+    search_term = str(list(search_kw.values())[0])
     users_dict = {}
     # exit if there are no matches
     if n_matches == 0:

@@ -30,11 +30,12 @@ def read_master_data(filepath):
     except FileNotFoundError as err:
         print("\nCouldnt find '{}' \n".format(filepath))
         sys.exit(0)
+    master_df_raw.columns = master_df_raw.columns.str.lower()
     # offset for consistency in row numbers
     offset = 2
     master_df_raw.index = master_df_raw.index + offset
     # drop rows where both names or emails are available
-    name_and_email_available = master_df_raw['NAME'].notnull() & master_df_raw['EMAIL'].notnull()
+    name_and_email_available = master_df_raw['name'].notnull() & master_df_raw['email'].notnull()
     master_df = master_df_raw[name_and_email_available]
     return master_df
 
@@ -43,24 +44,25 @@ def write_df_to_excel(df, filepath):
     '''write df to excelfile in a proper order
     '''
     # order of columns for excel output
-    cols_1 = ['master_details',
-              'github_id_details',
-              'stackoverflow_id_details',
-              'github_overall_rating',
-              'stackoverflow_overall_rating']
-    cols_2 = ['github_expertise_ratings']
-    cols_3 = ['stackoverflow_expertise_ratings']
-    # check if columns names are in df, keep columns that are in df.columns.level[0]
-    for cols_list in [cols_1, cols_2, cols_3]:
-        cols_list = [col for col in cols_list if col in df.columns.levels[0]]
-    ordered_df_list = [
-            df[cols_1],
-            df[cols_2].sortlevel(axis=1),
-            df[cols_3].sortlevel(axis=1)
+    cols_order = [
+            'master_details',
+            'github_id_details',
+            'stackoverflow_id_details',
+            'github_overall_rating',
+            'stackoverflow_overall_rating',
+            'github_expertise_ratings',
+            'stackoverflow_expertise_ratings'
     ]
-    df = pd.concat(ordered_df_list, axis=1)
+    # keep columns that are in df
+    ordered_df_list = []
+    for col_name in cols_order:
+        try:
+            ordered_df_list.append(df[[col_name]].sortlevel(axis=1))
+        except (KeyError,IndexError):
+            continue
+    ordered_df = pd.concat(ordered_df_list, axis=1)
     # write dataframe to excel file
-    df.to_excel(filepath, index_label='index')
+    ordered_df.to_excel(filepath, index_label='index')
 
 
 def get_github_stackorf_details(g, so, master_data_df):
@@ -72,8 +74,8 @@ def get_github_stackorf_details(g, so, master_data_df):
     stackovf_ratings_dict = {}
     ratings_dict = {}
     for i,row in master_data_df.iterrows():
-        user_name = row['NAME']
-        user_email = row['EMAIL'].split('|')[0]
+        user_name = row['name']
+        user_email = row['email'].split('|')[0]
         print('\nSl.No {:3d}: [{}], [{}]'.format(i, user_name, user_email))
         # applicant master details - as part of output
         master_details_dict[i] = {
@@ -133,11 +135,17 @@ if __name__ == '__main__':
     # initialize stackoverflow object
     so = sod.init_stackoverflow_object()
     # get applicant github stackoverflow data
-    data_df = master_data_df
+    sample = False
+    if sample:
+        data_df = master_data_df.sample(10)
+        suffix = "Sample "
+    else:
+        data_df = master_data_df
+        suffix = ""
     all_details_dict = get_github_stackorf_details(g, so, data_df)
     ratings_details = all_details_dict['ratings_dict']
     # convert dict of all applicant details to a dataframe
     applicants_df = pd.DataFrame.from_dict(ratings_details, orient='index')
     # write to excel file
-    output_file = os.path.join(MASTER_DIR, OUTPUT_FILE)
+    output_file = os.path.join(MASTER_DIR, suffix + OUTPUT_FILE)
     write_df_to_excel(applicants_df, output_file)
