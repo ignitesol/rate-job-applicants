@@ -154,7 +154,8 @@ def get_overall_rating(repo_details, user):
     repo_details['user_rating'] = repo_details['repo_rating'] * user_contrib
     # derive overall rating
     overall_rating = pd.pivot_table(repo_details, index='language', values='user_rating',
-                                    aggfunc=sum, margins=True, margins_name='OVERALL').to_frame()
+                                    aggfunc=sum, margins=True,
+                                    margins_name='github_overall_rating').to_frame()
     overall_rating.index.name = 'field'
     overall_rating = overall_rating.rename(columns={'user_rating':'value'})
     overall_rating['field_type'] = 'github_expertise_ratings'
