@@ -22,12 +22,12 @@
      * Expertise (tags) Data: For each tag (language/expertise) : Answer_count, Answer_score, Question_count, Question_score
 - [X] __Calculate aggregate metrics for rating the applicant.__
   * __Github Rating__:
-     * __Repository_Ratings__: `count(Stars) + 2*count(Forks) + log<sub>10</sub>(All_Contributions + 1)` (list)
+     * __Repository_Ratings__: `count(Stars) + 2*count(Forks) + log10(All_Contributions + 1)` (list)
      * __User_Repo_Ratings__: `User_Contributions_% * (User is Owner ? 1 : 1.25) * Repository_Rating` (list)
      * __Overall_User_Rating__: `sum(User_Repository_Ratings)` for all Repositories
      * __User_Expertise_Ratings__: `User_Repository_Ratings GROUPBY Language` for all Repositories
   * __Stackoverflow Rating__:
-     * __General_User_Rating__: `0.1*Accept_Rate + sum(Bronze_Badges + 10*Silver_Badges + 10*Gold_Badges) + 100*log<sub>10</sub>(Reputation + 1)`
+     * __General_User_Rating__: `0.1*Accept_Rate + sum(Bronze_Badges + 10*Silver_Badges + 100*Gold_Badges) + 100*log10(Reputation + 1)`
      * __User_Expertise_Ratings__: `sum(Answer_Count + Answer_Score + Question_Count + Question_Score) GROUPBY Tag`
      * __Overall_User_Rating__: `General_User_Rating + sum(User_Expertise_Ratings)`
 - [ ] __Calculate overall rating for the applicant.__
