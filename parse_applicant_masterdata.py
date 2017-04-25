@@ -65,6 +65,58 @@ def write_df_to_excel(df, filepath):
     ordered_df.to_excel(filepath, index_label='index')
 
 
+
+def get_master_details(row):
+    '''get a few id details from master data
+    '''
+    user_name = row['name']
+    user_email = row['email'].split('|')[0]
+    # applicant master details
+    master_details_dict = {
+            ('master_details','name'): user_name,
+            ('master_details','email'): user_email
+    }
+    return master_details_dict
+
+    
+def get_github_details(g, user_name, user_email):
+    '''get github details
+    '''
+    # search in Github for user matching the email_id
+    search_string = user_email
+    github_matches = ghd.find_matching_users(g, search_string)
+    try:
+        # get github data for the matching user
+        github_details = ghd.get_github_profiles(github_matches, search_string)
+    except SystemExit:
+        github_details = {}
+    # get the github ratings df
+    github_ratings_df = github_details.get(search_string,{}).get('overall_rating', pd.DataFrame())
+    # convert df to dict
+    github_ratings_dict = github_ratings_df.to_dict().get('value',{})
+    return github_ratings_dict
+
+
+def get_stackoverflow_details(so, user_name, user_email):
+    '''get stackoverflow details
+    '''
+    # use fullname as search string
+    search_string = user_name
+    search_kw = {'inname':search_string}
+    # find matching stackoverflow users, use the first match
+    stackovf_matches = sod.find_matching_users(so, search_kw)[0:1]
+    try:
+        # get stackoverflow details for the first user
+        stackovf_details = sod.get_stackoverflow_profiles(stackovf_matches, search_kw)
+    except SystemExit:
+        stackovf_details = {}
+    # get statckoverflow ratings df
+    stackovf_ratings_df = stackovf_details.get(search_string,{}).get('ratings_df', pd.DataFrame())
+    # convert df to dict
+    stackovf_ratings_dict = stackovf_ratings_df.to_dict().get('value',{})
+    return stackovf_ratings_dict
+
+
 def get_github_stackorf_details(g, so, master_data_df):
     '''get github and stackoverflow details for each of the applicant in the master_data_df
     '''
@@ -73,51 +125,24 @@ def get_github_stackorf_details(g, so, master_data_df):
     github_ratings_dict = {}
     stackovf_ratings_dict = {}
     ratings_dict = {}
+    # for each applicant get Github, Stackoverflow and Master Data, do this for all applicants
     for i,row in master_data_df.iterrows():
-        user_name = row['name']
-        user_email = row['email'].split('|')[0]
-        print('\nSl.No {:3d}: [{}], [{}]'.format(i, user_name, user_email))
-        # applicant master details - as part of output
-        master_details_dict[i] = {
-                ('master_details','name'): user_name,
-                ('master_details','email'): user_email
-        }
-        
-        
-        # GITHUB
+        print('\nSl.No {:3d}: [{}], [{}]'.format(i, row['name'], row['email']) )
+        # applicant master details
+        master_details_dict[i] = get_master_details(row)
+        user_name = master_details_dict[i].get(('master_details','name'),'')
+        user_email = master_details_dict[i].get(('master_details','email'),'')
         # search in Github for user matching the email_id
-        search_string = user_email
-        github_matches = ghd.find_matching_users(g, search_string)
-        try:
-            # get github data for the matching user
-            github_details = ghd.get_github_profiles(github_matches, search_string)
-        except SystemExit:
-            github_details = {}
-        # get the github ratings df
-        github_ratings_df = github_details.get(user_email,{}).get('overall_rating', pd.DataFrame())
-        # convert df to dict
-        github_ratings_dict[i] = github_ratings_df.to_dict().get('value',{})
-        
-        
-        # STACKOVERFLOW
-        search_string = user_name
-        search_kw = {'inname':search_string}
-        stackovf_matches = sod.find_matching_users(so, search_kw)[0:1]
-        try:
-            stackovf_details = sod.get_stackoverflow_profiles(stackovf_matches, search_kw)
-        except SystemExit:
-            stackovf_details = {}
-        stackovf_ratings_df = stackovf_details.get(search_string,{}).get('ratings_df', pd.DataFrame())
-        stackovf_ratings_dict[i] = stackovf_ratings_df.to_dict().get('value',{})
-        
-        
+        github_ratings_dict[i] = get_github_details(g, user_name, user_email)
+        # search in Stackoverflow for user matching the user_name
+        stackovf_ratings_dict[i] = get_stackoverflow_details(so, user_name, user_email)
         # append all ratings df to applicant master details
         ratings_dict[i] = {
                 **master_details_dict[i],
                 **github_ratings_dict[i],
                 **stackovf_ratings_dict[i]
         }
-    # all dicts
+    # dictionary of combined as well as individual ratings
     all_details_dict = {
             'ratings_dict': ratings_dict,
             'master_details_dict': master_details_dict,
@@ -135,7 +160,7 @@ if __name__ == '__main__':
     # initialize stackoverflow object
     so = sod.init_stackoverflow_object()
     # get applicant github stackoverflow data
-    sample = False
+    sample = True
     if sample:
         data_df = master_data_df.sample(10)
         suffix = "Sample "

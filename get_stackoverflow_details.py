@@ -69,12 +69,8 @@ def get_top_answers_tags(user):
     except ValueError:
         df_all = pd.DataFrame(columns=cols)
     # row totals
-    df_all['value'] = df_all.sum(axis=1)
+    df_all['value'] = df_all.sum(axis=1).astype(int)
     df_tags = df_all
-#    # column totals
-#    sum_row = df_all.sum(axis=0)
-#    sum_row.ix['tag_name'] = 'OVERALL'
-#    df_tags = df_all.append(sum_row, ignore_index=True)
     # return df sorted by row totals
     return df_tags.sort_values(by = 'value', ascending=False)
 
@@ -141,7 +137,7 @@ def overall_rating(user_df, tags_df):
     gen_ratings = [apply_func_wgt_bias(ratings_df.loc[key,'value'], opr) for key,opr in ops.items()]
     overall_rating = 1*sum(gen_ratings) + 1*tags_df['value'].sum()
     # append overall rating
-    ratings_df.loc['stackoverflow_overall_rating', 'value'] = overall_rating
+    ratings_df.loc['stackoverflow_overall_rating', 'value'] = int(overall_rating)
     ratings_df.loc['stackoverflow_overall_rating', 'field_type'] = 'stackoverflow_overall_rating'
     # append tags
     top_tags_df = tags_df['value'].to_frame()

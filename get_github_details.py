@@ -152,6 +152,9 @@ def get_overall_rating(repo_details, user):
     owner_frac = 0.25
     user_contrib = 0.01*repo_details['user_contrib_pct'] * (1.25 - owner_frac*repo_details['isowner'])
     repo_details['user_rating'] = repo_details['repo_rating'] * user_contrib
+    # convert to int
+    repo_details['repo_rating'] = repo_details['repo_rating'].astype(int)
+    repo_details['user_rating'] = repo_details['user_rating'].astype(int)
     # derive overall rating
     overall_rating = pd.pivot_table(repo_details, index='language', values='user_rating',
                                     aggfunc=sum, margins=True,
